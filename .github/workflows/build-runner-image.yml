@@ -7,6 +7,8 @@ name: Build ARC runner image
 # the 3 PUBLIC app repos run on hosted ubuntu-latest too.) Uses GITHUB_TOKEN only — no PAT.
 
 on:
+  schedule:
+    - cron: '0 2 * * *'    # 02:00 UTC nightly — picks up upstream :latest base
   workflow_dispatch: {}
   push:
     branches: [ main ]
@@ -20,9 +22,9 @@ permissions:
 
 env:
   IMAGE: ghcr.io/automationnexus/arcrunner
-  # Runners pull :latest (auto-update on every push). The version tag is an immutable
-  # snapshot kept for rollback — bump it together with the FROM tag in Dockerfile.runner.
-  VERSION_TAG: 2.335.1-ci1
+  # Runners pull :latest (auto-update on every push). Base is FROM ...:latest, so a rebuild
+  # is not reproducible — each build also gets an immutable dated snapshot tag (computed below)
+  # kept for rollback (snapshot-YYYYMMDD-<shortsha>).
 
 jobs:
   build:
@@ -40,6 +42,10 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Compute snapshot tag
+        id: snap
+        run: echo "tag=snapshot-$(date -u +%Y%m%d)-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
       - name: Build and push
         uses: docker/build-push-action@v7
         with:
@@ -49,4 +55,4 @@ jobs:
           push: true
           tags: |
             ${{ env.IMAGE }}:latest
-            ${{ env.IMAGE }}:${{ env.VERSION_TAG }}
+            ${{ env.IMAGE }}:${{ steps.snap.outputs.tag }}

@@ -2,8 +2,11 @@
 # Custom ARC runner image for AutomationNexus.
 # Extends the official Actions runner with the CI tool belt the workflows need
 # (mirrors the software-install portion of runner-provision.sh). Built for linux/amd64
-# because the workflows target X64. Bump the base tag + the image tag together.
-FROM ghcr.io/actions/actions-runner:2.335.1
+# because the workflows target X64.
+# Base is :latest — auto-tracks the newest runner agent + Ubuntu base (Noble 24.04 today;
+# follows upstream when GitHub bumps the base). The build workflow stamps a dated snapshot
+# tag alongside :latest for rollback, since :latest is not reproducible across rebuilds.
+FROM ghcr.io/actions/actions-runner:latest
 
 USER root
 ENV DEBIAN_FRONTEND=noninteractive \

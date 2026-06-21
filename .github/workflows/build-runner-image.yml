@@ -3,8 +3,8 @@ name: Build ARC runner image
 # Builds the custom self-hosted runner image and pushes it to GHCR.
 #
 # This repo (ARCRunner) is PUBLIC, so GitHub-hosted runners are free + unlimited here —
-# the build runs on ubuntu-latest. (Only this tooling repo uses hosted; all 5 app repos
-# run their CI on the self-hosted ARC pool.) Uses GITHUB_TOKEN only — no PAT.
+# the build runs on ubuntu-latest. (Split: the 2 PRIVATE app repos run on self-hosted ARC;
+# the 3 PUBLIC app repos run on hosted ubuntu-latest too.) Uses GITHUB_TOKEN only — no PAT.
 
 on:
   workflow_dispatch: {}
@@ -20,7 +20,9 @@ permissions:
 
 env:
   IMAGE: ghcr.io/automationnexus/arcrunner
-  TAG: 2.335.1-ci1         # bump together with the FROM tag in Dockerfile.runner
+  # Runners pull :latest (auto-update on every push). The version tag is an immutable
+  # snapshot kept for rollback — bump it together with the FROM tag in Dockerfile.runner.
+  VERSION_TAG: 2.335.1-ci1
 
 jobs:
   build:
@@ -45,4 +47,6 @@ jobs:
           file: Dockerfile.runner
           platforms: linux/amd64
           push: true
-          tags: ${{ env.IMAGE }}:${{ env.TAG }}
+          tags: |
+            ${{ env.IMAGE }}:latest
+            ${{ env.IMAGE }}:${{ env.VERSION_TAG }}

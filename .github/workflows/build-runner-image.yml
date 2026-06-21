@@ -19,7 +19,7 @@ permissions:
   packages: write          # lets GITHUB_TOKEN push to ghcr.io/<org>/... (overrides the read-only default)
 
 env:
-  IMAGE: ghcr.io/automationnexus/arc-runner
+  IMAGE: ghcr.io/automationnexus/arcrunner
   TAG: 2.335.1-ci1         # bump together with the FROM tag in Dockerfile.runner
 
 jobs:

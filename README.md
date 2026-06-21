@@ -9,7 +9,7 @@ all 5 app repos run their CI on the self-hosted **ARC** pool (`automationnexus-k
 ## Build / rebuild the image
 
 **Actions → "Build ARC runner image" → Run workflow** (or push a change to `Dockerfile.runner`).
-It builds `linux/amd64` and pushes `ghcr.io/automationnexus/arc-runner:2.335.1-ci1`.
+It builds `linux/amd64` and pushes `ghcr.io/automationnexus/arcrunner:2.335.1-ci1`.
 
 The GHCR package should be **public** so the k3s nodes pull it with no credential. (If you keep it
 private, add a `ghcr-pull` secret per node — see `ARC-K3S-MIGRATION-GUIDE-AUDITED.md` §6.2.)
@@ -19,7 +19,7 @@ private, add a `ghcr-pull` secret per node — see `ARC-K3S-MIGRATION-GUIDE-AUDI
 ```bash
 gh auth token | docker login ghcr.io -u <your-gh-login> --password-stdin
 docker buildx build --platform linux/amd64 \
-  -t ghcr.io/automationnexus/arc-runner:2.335.1-ci1 \
+  -t ghcr.io/automationnexus/arcrunner:2.335.1-ci1 \
   --push -f Dockerfile.runner .
 ```
 

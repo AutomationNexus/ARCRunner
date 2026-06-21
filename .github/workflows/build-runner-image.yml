@@ -1,20 +1,18 @@
 name: Build ARC runner image
 
-# Rebuilds the custom self-hosted runner image and pushes it to GHCR.
+# Builds the custom self-hosted runner image and pushes it to GHCR.
 #
-# RUNNERS — read this:
-#   * The FIRST image is built LOCALLY with Docker (bootstrap) — see README.
-#     This private repo has no GitHub-hosted runner minutes, so `ubuntu-latest`
-#     here fails at startup. That's expected; don't use hosted for this repo.
-#   * This workflow therefore targets the SELF-HOSTED ARC pool (automationnexus-k3s),
-#     whose runner pods have Docker-in-Docker — so future rebuilds run on your own
-#     infra. It only works once ARC is live (§8–§10 of the guide).
-#   * If you ever enable GitHub-hosted runners, switch runs-on back to ubuntu-latest.
-#
-# Manual-only (workflow_dispatch) so it never auto-fails on a push.
+# This repo (ARCRunner) is PUBLIC, so GitHub-hosted runners are free + unlimited here —
+# the build runs on ubuntu-latest. (Only this tooling repo uses hosted; all 5 app repos
+# run their CI on the self-hosted ARC pool.) Uses GITHUB_TOKEN only — no PAT.
 
 on:
   workflow_dispatch: {}
+  push:
+    branches: [ main ]
+    paths:
+      - Dockerfile.runner
+      - .github/workflows/build-runner-image.yml
 
 permissions:
   contents: read
@@ -26,8 +24,8 @@ env:
 
 jobs:
   build:
-    runs-on: automationnexus-k3s   # your ARC pool (DinD). Needs ARC live first.
-    timeout-minutes: 45
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v6
 

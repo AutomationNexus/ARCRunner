@@ -1,0 +1,61 @@
+# syntax=docker/dockerfile:1
+# Custom ARC runner image for AutomationNexus.
+# Extends the official Actions runner with the CI tool belt the workflows need
+# (mirrors the software-install portion of runner-provision.sh). Built for linux/amd64
+# because the workflows target X64. Bump the base tag + the image tag together.
+FROM ghcr.io/actions/actions-runner:2.335.1
+
+USER root
+ENV DEBIAN_FRONTEND=noninteractive \
+    LANG=en_US.UTF-8 \
+    LC_ALL=en_US.UTF-8 \
+    PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/google-chrome-stable \
+    PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS=1
+
+# CI belt (mirrors runner-provision.sh [3/9]); ripgrep baked in (4 repos apt-install it per job)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      apt-transport-https build-essential bzip2 ca-certificates cmake curl \
+      dnsutils file git git-lfs gnupg jq locales lsb-release make \
+      netcat-openbsd openssh-client p7zip-full parallel pkg-config \
+      python3 python3-dev python3-pip python3-venv ripgrep rsync shellcheck \
+      software-properties-common sqlite3 sudo tree unzip wget xz-utils \
+      zip zstd \
+    && git lfs install --system --skip-repo \
+    && locale-gen en_US.UTF-8 \
+    && rm -rf /var/lib/apt/lists/*
+
+# GitHub CLI
+RUN install -m 0755 -d /etc/apt/keyrings \
+    && curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
+       -o /etc/apt/keyrings/githubcli-archive-keyring.gpg \
+    && chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg \
+    && echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" \
+       > /etc/apt/sources.list.d/github-cli.list \
+    && apt-get update && apt-get install -y --no-install-recommends gh \
+    && rm -rf /var/lib/apt/lists/*
+
+# Node.js 24 (matches NODE_MAJOR)
+RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - \
+    && apt-get install -y --no-install-recommends nodejs \
+    && rm -rf /var/lib/apt/lists/*
+
+# Google Chrome (amd64) for Playwright / tools/ci-install-chromium.sh
+RUN curl -fsSL https://dl.google.com/linux/linux_signing_key.pub \
+      | gpg --dearmor -o /usr/share/keyrings/google-chrome.gpg \
+    && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome.gpg] https://dl.google.com/linux/chrome/deb/ stable main" \
+       > /etc/apt/sources.list.d/google-chrome.list \
+    && apt-get update && apt-get install -y --no-install-recommends google-chrome-stable \
+    && rm -rf /var/lib/apt/lists/*
+
+# Host Playwright CLI fallback (no browser bundle; jobs install their own)
+RUN python3 -m pip install --no-cache-dir --break-system-packages playwright
+
+# Narrow sudo (replace the base image's broad passwordless-sudo group)
+RUN gpasswd -d runner sudo \
+    && printf '%s\n' \
+      'runner ALL=(ALL) NOPASSWD: /usr/bin/apt-get, /usr/bin/apt, /usr/bin/dpkg' \
+      > /etc/sudoers.d/99-runner-ci \
+    && chmod 0440 /etc/sudoers.d/99-runner-ci \
+    && visudo -cf /etc/sudoers.d/99-runner-ci
+
+USER runner

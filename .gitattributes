@@ -1,0 +1,5 @@
+# Force LF for shell-sensitive files so a Windows edit can't commit CRLF and
+# break the Dockerfile's heredoc RUN steps (a trailing \r on EOF/PY delimiters
+# would fail the build).
+Dockerfile* text eol=lf
+*.sh text eol=lf

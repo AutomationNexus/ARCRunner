@@ -12,8 +12,8 @@ USER root
 ENV DEBIAN_FRONTEND=noninteractive \
     LANG=en_US.UTF-8 \
     LC_ALL=en_US.UTF-8 \
-    PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/google-chrome-stable \
-    PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS=1
+    PLAYWRIGHT_SKIP_VALIDATE_HOST_REQUIREMENTS=1 \
+    PLAYWRIGHT_BROWSERS_PATH=/opt/ms-playwright
 
 # CI belt (mirrors runner-provision.sh [3/9]); ripgrep baked in (4 repos apt-install it per job)
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -42,16 +42,32 @@ RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - \
     && apt-get install -y --no-install-recommends nodejs \
     && rm -rf /var/lib/apt/lists/*
 
-# Google Chrome (amd64) for Playwright / tools/ci-install-chromium.sh
-RUN curl -fsSL https://dl.google.com/linux/linux_signing_key.pub \
-      | gpg --dearmor -o /usr/share/keyrings/google-chrome.gpg \
-    && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome.gpg] https://dl.google.com/linux/chrome/deb/ stable main" \
-       > /etc/apt/sources.list.d/google-chrome.list \
-    && apt-get update && apt-get install -y --no-install-recommends google-chrome-stable \
-    && rm -rf /var/lib/apt/lists/*
-
-# Host Playwright CLI fallback (no browser bundle; jobs install their own)
-RUN python3 -m pip install --no-cache-dir --break-system-packages playwright
+# Playwright Chromium baked into a shared, world-readable path (PLAYWRIGHT_BROWSERS_PATH)
+# and verified at build time. App repos pin playwright >=1.59,<2.0; their per-job
+# `playwright install chromium` finds this version-matched browser already present and
+# skips the download, which on some ephemeral pods landed incomplete/corrupt and crashed
+# Chromium at launch (TargetClosedError at new_context). The nightly rebuild keeps the
+# baked version aligned with the apps. The build fails if the baked browser can't launch.
+RUN <<'EOF'
+set -eux
+python3 -m pip install --no-cache-dir --break-system-packages "playwright>=1.59,<2.0"
+python3 -m playwright install --with-deps chromium
+python3 - <<'PY'
+from playwright.sync_api import sync_playwright
+with sync_playwright() as p:
+    browser = p.chromium.launch(
+        args=["--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu"]
+    )
+    browser.new_context().new_page()
+    browser.close()
+print("playwright chromium smoke test OK")
+PY
+# Hand the browser cache to the runner user so jobs use the baked, version-matched
+# browser when it matches and can still download a different revision into the same
+# warm cache when an app pins a drifted Playwright version.
+chown -R runner:runner "$PLAYWRIGHT_BROWSERS_PATH"
+rm -rf /var/lib/apt/lists/*
+EOF
 
 # Narrow sudo (replace the base image's broad passwordless-sudo group)
 RUN gpasswd -d runner sudo \

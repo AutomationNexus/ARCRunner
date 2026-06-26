@@ -1,0 +1,50 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "cursor-acp/composer-2.5",
+  "small_model": "anthropic/claude-haiku-4-5",
+  "default_agent": "plan",
+  "agent": {
+    "plan": {
+      "mode": "primary",
+      "model": "cursor-acp/composer-2.5",
+      "instructions": [
+        ".opencode/project-rules.md",
+        "docs/runbooks/branch-policy.md",
+        ".opencode/plan-instructions.md"
+      ]
+    },
+    "build": {
+      "mode": "primary",
+      "model": "cursor-acp/composer-2.5",
+      "instructions": [
+        ".opencode/project-rules.md",
+        "docs/runbooks/branch-policy.md",
+        ".opencode/build-instructions.md"
+      ]
+    },
+    "general": { "disable": true },
+    "explore": { "disable": true },
+    "scout": { "disable": true }
+  },
+  "share": "disabled",
+  "snapshot": true,
+  "instructions": [
+    ".opencode/project-rules.md",
+    "docs/runbooks/branch-policy.md",
+    "docs/runbooks/opencode-init.md"
+  ],
+  "permission": {
+    "read": {
+      "*": "allow",
+      "AGENT-HANDOFF.md": "deny",
+      "AGENTS.md": "deny",
+      "CLAUDE.md": "deny"
+    },
+    "edit": {
+      "*": "allow",
+      "AGENT-HANDOFF.md": "deny",
+      "AGENTS.md": "deny",
+      "CLAUDE.md": "deny"
+    }
+  }
+}

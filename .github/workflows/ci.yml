@@ -1,0 +1,82 @@
+name: CI
+
+# Branch model: feature branches -> PR -> main.
+# Direct pushes to main are blocked by CI guards and .githooks/pre-push.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  guard-main-push:
+    name: Guard Main Direct Push
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Require PR merge or bot for main pushes
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const allowedBots = new Set(["github-actions[bot]", "dependabot[bot]"]);
+            if (allowedBots.has(context.actor)) {
+              core.info("Allowed bot push to main.");
+              return;
+            }
+
+            const message = (context.payload.head_commit?.message || "").trim();
+            if (
+              /^Merge pull request #\d+/m.test(message) ||
+              /\(#\d+\)\s*$/.test(message)
+            ) {
+              core.info("Allowed PR merge push to main.");
+              return;
+            }
+
+            const { owner, repo } = context.repo;
+            const commitShas = (context.payload.commits || []).map((commit) => commit.id);
+            if (commitShas.length === 0) {
+              commitShas.push(context.sha);
+            }
+
+            for (const commitSha of commitShas) {
+              const { data: pullRequests } =
+                await github.rest.repos.listPullRequestsAssociatedWithCommit({
+                  owner,
+                  repo,
+                  commit_sha: commitSha,
+                });
+              if (pullRequests.some((pr) => pr.merged_at)) {
+                core.info(`Allowed PR merge push to main (${pullRequests.map((pr) => "#" + pr.number).join(", ")}).`);
+                return;
+              }
+            }
+
+            core.setFailed(
+              "Direct pushes to main are not allowed. Use a feature branch, open a PR, wait for CI, then merge."
+            );
+
+  guard-main-source:
+    name: Guard Main Source Branch
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enforce feature-branch PRs to main
+        run: |
+          if [ "${{ github.event_name }}" != "pull_request" ] || [ "${{ github.base_ref }}" != "main" ]; then
+            echo "Not a PR to main; guard does not apply. OK."
+            exit 0
+          fi
+          if [ "${{ github.head_ref }}" = "main" ] || [ "${{ github.head_ref }}" = "dev" ]; then
+            echo "::error::PRs to main must come from a feature branch, not '${{ github.head_ref }}'."
+            exit 1
+          fi
+          echo "OK; source branch is a feature branch."

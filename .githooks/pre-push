@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Block direct pushes to protected branch main (main-only repo).
+# Use a feature branch + PR to main.
+
+protected_pattern='^refs/heads/main$'
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+  if [[ -z "$remote_ref" ]]; then
+    continue
+  fi
+  if [[ "$remote_ref" =~ $protected_pattern ]]; then
+    echo "error: direct push to 'main' is not allowed." >&2
+    echo "Create a feature branch, open a PR to main, wait for CI, then merge." >&2
+    exit 1
+  fi
+done
+
+exit 0

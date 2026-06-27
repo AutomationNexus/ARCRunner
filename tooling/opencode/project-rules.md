@@ -32,6 +32,14 @@ Invoke `@arc-qa-gatekeeper` or run `/arc-qa` before push. Run `/arc-prepush` bef
 - `build` invokes `@arc-qa-gatekeeper` for the full `/arc-qa` gate before finishing.
 - Land git changes with a feature branch and PR to `main`; never push directly to `main`.
 
+## Shell (Windows local)
+
+- Agent terminal commands use PowerShell (`powershell`; use `pwsh` if installed).
+- Chain with `;`, not `&&`. Use Windows paths (`tools\install-githooks.cmd`).
+- One shell per tool call when debugging; do not mix cmd/bash/PowerShell in one pipeline.
+- Outside the clone: `gh --repo AutomationNexus/ARCRunner <subcommand>`.
+- Tail logs: `... | Select-Object -Last N`. CI workflows stay bash/ubuntu — do not change.
+
 ## Local OpenCode Setup
 
 - `opencode.json` and `.opencode/` are local-only and must not be committed.

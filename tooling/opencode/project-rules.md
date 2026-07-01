@@ -58,3 +58,15 @@ Before switching agents, write a compact handoff:
 - Risks/blockers: actionable items only.
 
 Do not paste large diffs or full logs.
+
+## Shared CI — Do Not Inline
+
+- This repo's `build-runner-image.yml` is currently self-contained (does not call
+  `automationnexus/.github` reusable workflows). If that ever changes, **never inline or
+  fork `automationnexus/.github` reusable-workflow logic** into this repo's own workflow
+  files — always call it via `uses: automationnexus/.github/.github/workflows/<name>.yml@v1`.
+- If a future need requires CI behavior a shared workflow doesn't support, the fix is a new
+  **generic** input on the shared workflow (contributed to `automationnexus/.github`), never
+  a local copy/paste workaround.
+- Never use `GITHUB_TOKEN` for cross-repo automation — only the CI-Bot GitHub App, if this
+  repo ever needs cross-repo writes.

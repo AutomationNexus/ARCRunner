@@ -1,9 +1,13 @@
-# Local operator and AI tool state
+# Claude Code: personal/local-only files only (never shared with the team).
+# CLAUDE.md and .claude/agents|commands|settings.json are COMMITTED directly on
+# main (this repo is main-only, no dev branch -- see CLAUDE.md's note on this).
+CLAUDE.local.md
+.claude/settings.local.json
+
+# Other AI tool configs -- not used in this repo; block if ever introduced accidentally
 AGENT-HANDOFF.md
 AGENTS.md
-CLAUDE.md
 .cursor/
-.claude/
 .mcp.json
 .cursorrules
 .aider*
@@ -11,5 +15,3 @@ CLAUDE.md
 .copilot/
 .continuedev/
 .codeium/
-opencode.json
-.opencode/

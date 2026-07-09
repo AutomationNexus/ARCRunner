@@ -20,6 +20,9 @@ This repo builds the custom GitHub Actions runner image for AutomationNexus ARC.
 - Start every task with `git status --short --branch` before edits.
 - Enable local hook once per clone: `tools\install-githooks.cmd` (blocks direct pushes to
   protected branches).
+- Org-wide CI/PR flow, branch rules, and auto-versioning: see `../CLAUDE.md`
+  (the AutomationNexus GitHub workspace root) — consult it first for anything
+  not covered here, or if CI looks broken.
 
 ## Editable files
 

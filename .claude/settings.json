@@ -3,7 +3,15 @@
     "deny": [
       "Bash(git reset --hard:*)",
       "Bash(git clean:*)",
-      "Bash(git push origin main:*)"
+      "Bash(git push origin main:*)",
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(**/.env)",
+      "Read(**/.env.*)",
+      "Read(**/*.pem)",
+      "Read(**/*.key)",
+      "Read(**/id_rsa*)",
+      "Read(**/id_ed25519*)"
     ]
   }
 }

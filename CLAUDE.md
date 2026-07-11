@@ -59,7 +59,9 @@ push. Run `/prepush` before opening or updating a PR.
 
 This repo's scope is small enough (one Dockerfile, one workflow) that no architect/reviewer/
 security-auditor agents are warranted — adding them would be over-engineering for the
-surface area here.
+surface area here. This deliberately minimal team is a documented exception within the
+broader cross-repo org model; see the workspace-root `CLAUDE.md`'s "Agent organization"
+section for the full rationale.
 
 ## Slash commands
 

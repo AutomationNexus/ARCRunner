@@ -2,9 +2,12 @@
 
 Builds the custom GitHub Actions runner image for the AutomationNexus ARC setup.
 
-This repo is **public** on purpose — it holds only a Dockerfile + build workflow (no secrets) — so the
-image build runs on **free GitHub-hosted `ubuntu-latest`**. Only this tooling repo uses hosted runners;
-all 5 app repos run their CI on the self-hosted **ARC** pool (`automationnexus-k3s`).
+This repo is **public** on purpose — it holds only a Dockerfile + build workflow (no secrets).
+
+The image build runs on the self-hosted **ARC** pool (`automationnexus-k3s`), like every other job
+in the org — there are no GitHub-hosted runners left, public repos included. Note this means the
+pool builds the very image it runs on; see "Local build" below for the recovery path if a bad
+`:latest` ever leaves it unable to rebuild itself.
 
 ## Build / rebuild the image
 

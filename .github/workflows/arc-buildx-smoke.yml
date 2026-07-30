@@ -1,0 +1,61 @@
+name: ARC buildx smoke test
+
+# TEMPORARY — delete before this PR merges.
+#
+# Proves that the self-hosted ARC pool can do multi-arch `docker buildx` with QEMU
+# binfmt emulation, which is a strictly stronger requirement than the plain
+# `docker run` that ARC is already known to handle (HomeAssistant's ha-validate job
+# runs one today). `release-docker.yml` defaults to
+# `platforms: linux/amd64,linux/arm64`, so this capability gates moving the image
+# publish jobs off GitHub-hosted runners.
+#
+# Deliberately `push: false` and builds a throwaway inline Dockerfile: it must not
+# touch ghcr.io/automationnexus/arcrunner:latest, which the ARC pool auto-pulls.
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - .github/workflows/arc-buildx-smoke.yml
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ["linux", "x64", "k3s", "ubuntu-latest"]
+    timeout-minutes: 20
+    steps:
+      - name: Report runner identity
+        run: |
+          echo "runner=$RUNNER_NAME os=$RUNNER_OS arch=$RUNNER_ARCH"
+          echo "DOCKER_HOST=${DOCKER_HOST:-<unset>}"
+
+      - name: Docker available?
+        run: |
+          docker version
+          docker info --format 'server={{.ServerVersion}} driver={{.Driver}}'
+
+      - uses: docker/setup-qemu-action@v4
+
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Registered binfmt handlers
+        run: docker buildx inspect --bootstrap | sed -n '1,40p'
+
+      - name: Write throwaway Dockerfile
+        run: |
+          mkdir -p smoke
+          printf 'FROM alpine:3.20\nRUN uname -m > /arch.txt\n' > smoke/Dockerfile
+
+      - name: Multi-arch build (no push)
+        uses: docker/build-push-action@v7
+        with:
+          context: smoke
+          file: smoke/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: false
+
+      - name: Execute a foreign-arch container (binfmt proof)
+        run: |
+          docker run --rm --platform linux/arm64 alpine:3.20 uname -m

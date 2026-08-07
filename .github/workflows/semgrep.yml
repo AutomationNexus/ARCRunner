@@ -1,5 +1,9 @@
 name: Semgrep
 
+# Standalone scan — no dependency on AutomationNexus's shared reusable workflow, which is
+# org-scoped and unreachable from this personal-account repo (see ci.yml for the same
+# reasoning applied to the build check).
+
 on:
   push:
     branches: [main]
@@ -17,4 +21,39 @@ concurrency:
 
 jobs:
   semgrep:
-    uses: automationnexus/.github/.github/workflows/semgrep.yml@v1
+    name: Semgrep
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+
+      # A venv rather than a bare `pip install` because Ubuntu 24.04's system Python is
+      # externally-managed (PEP 668).
+      - name: Install semgrep
+        run: |
+          python3 -m venv "$RUNNER_TEMP/semgrep-venv"
+          "$RUNNER_TEMP/semgrep-venv/bin/pip" install --quiet --upgrade pip semgrep
+          echo "$RUNNER_TEMP/semgrep-venv/bin" >> "$GITHUB_PATH"
+
+      - run: |
+          semgrep scan \
+            --config=p/security-audit \
+            --config=p/secrets \
+            --json --output=semgrep-report.json \
+            --metrics=off || true
+
+      - name: Summarize findings
+        if: always()
+        run: |
+          if [ ! -s semgrep-report.json ]; then echo "No report."; exit 0; fi
+          ERRORS=$(jq '[.results[]? | select(.extra.severity=="ERROR")] | length' semgrep-report.json 2>/dev/null || echo 0)
+          WARNINGS=$(jq '[.results[]? | select(.extra.severity=="WARNING")] | length' semgrep-report.json 2>/dev/null || echo 0)
+          echo "Semgrep — ERROR: $ERRORS  WARNING: $WARNINGS"
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        continue-on-error: true
+        with:
+          name: semgrep-report-${{ github.run_id }}
+          path: semgrep-report.json
+          retention-days: 1

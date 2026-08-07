@@ -1,3 +1,9 @@
+name: CI
+
+# Standalone check for this repo — no dependency on AutomationNexus's shared reusable
+# workflow or CI-Bot App secrets, both of which are org-scoped and don't exist here after
+# the repo moved to a personal account.
+
 on:
   pull_request:
     branches: [main]
@@ -6,18 +12,24 @@ on:
 
 permissions:
   contents: read
-  pull-requests: read
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  ci:
-    uses: automationnexus/.github/.github/workflows/ci.yml@v1
-    with:
-      branch-model: main-only
-      has-security: false
-    secrets:
-      ci-bot-app-id: ${{ secrets.CI_BOT_APP_ID }}
-      ci-bot-app-private-key: ${{ secrets.CI_BOT_APP_PRIVATE_KEY }}
+  build-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Build (no push)
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: Dockerfile.runner
+          platforms: linux/amd64
+          push: false

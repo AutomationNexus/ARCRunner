@@ -2,13 +2,13 @@ name: Build ARC runner image
 
 # Builds the custom self-hosted runner image and pushes it to GHCR.
 #
-# Runs on the org's ARC pool like every other job — there are no GitHub-hosted runners
-# left in this org, public repos included. Uses GITHUB_TOKEN only — no PAT.
+# Runs on GitHub-hosted ubuntu-latest — this repo moved out of the AutomationNexus org,
+# so it no longer has access to that org's private ARC pool, and building the pool's own
+# image on GitHub-hosted infra avoids the bootstrap risk of a self-hosted build breaking
+# its own runners. Uses GITHUB_TOKEN only — no PAT.
 #
-# Bootstrap caveat: this workflow builds the very image the ARC pool runs on, so a bad
-# push to :latest can leave it unable to rebuild itself. The recovery path is the local
-# `docker buildx` in README.md "Local build (fallback, no Actions)", plus the immutable
-# snapshot-YYYYMMDD-<sha> tag this build stamps for rollback.
+# The immutable snapshot-YYYYMMDD-<sha> tag this build stamps is kept for rollback if a
+# bad :latest ever needs reverting on the consuming clusters.
 
 on:
   schedule:
@@ -25,14 +25,14 @@ permissions:
   packages: write          # lets GITHUB_TOKEN push to ghcr.io/<org>/... (overrides the read-only default)
 
 env:
-  IMAGE: ghcr.io/automationnexus/arcrunner
+  IMAGE: ghcr.io/ghostkernel-core/arcrunner
   # Runners pull :latest (auto-update on every push). Base is FROM ...:latest, so a rebuild
   # is not reproducible — each build also gets an immutable dated snapshot tag (computed below)
   # kept for rollback (snapshot-YYYYMMDD-<shortsha>).
 
 jobs:
   build:
-    runs-on: ["linux", "x64", "k3s", "ubuntu-latest"]
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v6
